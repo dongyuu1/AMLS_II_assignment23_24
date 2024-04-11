@@ -2,9 +2,10 @@ import torch.nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import time
-#import lpips
+import cv2
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from .dataset.datasets import DIV2K, BenchmarkDataset
+from .Datasets.datasets import DIV2K, BenchmarkDataset
 from .models.model_arch import SRModel, param_count
 from .models.metrics import *
 
@@ -26,7 +27,7 @@ def train(cfg):
                     cfg.MODEL.COUT,
                     cfg.MODEL.N_BLOCK).to(device=cfg.DEVICE)
     print(param_count(model))
-    # model.load_state_dict(torch.load("D:\deeplearning\AMLS2\A\models\pre.pth"))
+
     optimizer = optim.Adam(model.parameters(), lr=cfg.TRAIN.LR)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=cfg.TRAIN.ETA_MIN)
 
@@ -49,7 +50,6 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
     l1_loss_fn = L1LOSS().to(device=cfg.DEVICE)
     ssim_loss_fn = SSIMLoss(window_size=11, device=cfg.DEVICE)
     psnr_fn = PSNR().to(device=cfg.DEVICE)
-    #lpips_loss_fn = lpips.LPIPS(net="vgg", eval_mode=False).to(device=cfg.DEVICE)
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -58,7 +58,6 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
         ssim_loss_epoch = 0
         ssim_epoch = 0
         psnr_epoch = 0
-        lpips_loss_epoch = 0
 
         t1 = time.time()
 
@@ -70,7 +69,6 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
 
             l1_loss = l1_loss_fn(pred_sr, hr)
             ssim_loss, ssim = ssim_loss_fn(pred_sr, hr)
-            #lpips_loss = lpips_loss_fn.forward(pred_sr, hr)
             psnr = psnr_fn(pred_sr.detach(), hr.detach())
             loss = l1_loss + ssim_loss
 
@@ -78,7 +76,7 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
             ssim_loss_epoch += ssim_loss.item() * b
             ssim_epoch += ssim.item() * b
             psnr_epoch += psnr.item() * b
-            #lpips_loss_epoch += lpips_loss.item() * b
+
             optimizer.zero_grad()
 
             loss.backward()
@@ -89,22 +87,20 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
         # Calculate losses and metrics for each epoch
         l1_loss_epoch /= len(train_dataset)
         ssim_loss_epoch /= len(train_dataset)
-        lpips_loss_epoch /= len(train_dataset)
-        total_loss_epoch = l1_loss_epoch + ssim_loss_epoch + lpips_loss_epoch
+        total_loss_epoch = l1_loss_epoch + ssim_loss_epoch
         ssim_epoch /= len(train_dataset)
         psnr_epoch /= len(train_dataset)
 
         t2 = time.time()
 
         print("epoch: {} time spent: {}s total_loss: {} "
-              "mse_loss: {} ssim_loss: {} lpips_loss: {} ssim: {} psnr: {}".format(epoch,
-                                                                                   t2 - t1,
-                                                                                   total_loss_epoch,
-                                                                                   l1_loss_epoch,
-                                                                                   ssim_loss_epoch,
-                                                                                   lpips_loss_epoch,
-                                                                                   ssim_epoch,
-                                                                                   psnr_epoch))
+              "mse_loss: {} ssim_loss: {} ssim: {} psnr: {}".format(epoch,
+                                                                    t2 - t1,
+                                                                    total_loss_epoch,
+                                                                    l1_loss_epoch,
+                                                                    ssim_loss_epoch,
+                                                                    ssim_epoch,
+                                                                    psnr_epoch))
         # Perform validation
 
         print("Start validation at epoch {}".format(epoch))
@@ -112,7 +108,6 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
 
         l1_loss_epoch_val = 0
         ssim_loss_epoch_val = 0
-        lpips_loss_epoch_val = 0
         ssim_epoch_val = 0
         psnr_epoch_val = 0
 
@@ -123,32 +118,29 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
 
             pred_sr = model(lr)
 
-            l1_loss_val = l1_loss_fn(pred_sr, hr)
+            l1_loss_val = l1_loss_fn(pred_sr, hr).detach()
             ssim_loss_val, ssim_val = ssim_loss_fn(pred_sr, hr)
-            #lpips_loss_val = lpips_loss_fn.forward(pred_sr, hr)
-            psnr_val = psnr_fn(pred_sr.detach(), hr.detach())
+            ssim_loss_val = ssim_loss_val.detach()
+            psnr_val = psnr_fn(pred_sr, hr).detach()
 
             l1_loss_epoch_val += l1_loss_val.item() * b
             ssim_loss_epoch_val += ssim_loss_val.item() * b
             ssim_epoch_val += ssim_val.item() * b
             psnr_epoch_val += psnr_val.item() * b
-            #lpips_loss_epoch_val += lpips_loss_val * b
+
         l1_loss_epoch_val /= len(val_dataset)
         ssim_loss_epoch_val /= len(val_dataset)
-        lpips_loss_epoch_val /= len(val_dataset)
-        total_loss_epoch_val = l1_loss_epoch_val + ssim_loss_epoch_val + lpips_loss_epoch_val
+        total_loss_epoch_val = l1_loss_epoch_val + ssim_loss_epoch_val
         ssim_epoch_val /= len(val_dataset)
         psnr_epoch_val /= len(val_dataset)
 
         print("Validation of epoch {}, total_loss: {} "
-              "mse_loss: {} ssim_loss: {} lpips_loss: {} ssim: {} psnr: {}".format(epoch,
-                                                                                   total_loss_epoch_val,
-                                                                                   l1_loss_epoch_val,
-                                                                                   ssim_loss_epoch_val,
-                                                                                   lpips_loss_epoch_val,
-                                                                                   ssim_epoch_val,
-                                                                                   psnr_epoch_val
-                                                                                   ))
+              "mse_loss: {} ssim_loss: {} ssim: {} psnr: {}".format(epoch,
+                                                                    total_loss_epoch_val,
+                                                                    l1_loss_epoch_val,
+                                                                    ssim_loss_epoch_val,
+                                                                    ssim_epoch_val,
+                                                                    psnr_epoch_val))
 
         # Log data into tensorboard writer
         writer.add_scalars(main_tag="l1_loss",
@@ -159,9 +151,6 @@ def train_loop(cfg, epochs, train_dataset, val_dataset, model, optimizer, schedu
                            tag_scalar_dict={"train": ssim_loss_epoch,
                                             "val": ssim_loss_epoch_val},
                            global_step=epoch)
-        writer.add_scalars(main_tag="lpips_loss",
-                           tag_scalar_dict={"train": lpips_loss_epoch,
-                                            "val": lpips_loss_epoch_val})
         writer.add_scalars(main_tag="total_loss",
                            tag_scalar_dict={"train": total_loss_epoch,
                                             "val": total_loss_epoch_val},
@@ -195,6 +184,7 @@ def test(cfg, dataset, trial_time):
                                                                cfg.RAND_SEED)
     # Load trained model
     model = torch.load(cfg.SAVE_DIR + model_name)
+    print("The number of model parameter is: {}".format(param_count(model)))
     epochs = int(trial_time // len(test_dataset))
     test_loop(cfg, epochs, test_dataset, model)
 
@@ -212,7 +202,7 @@ def test_loop(cfg, epochs, test_dataset, model):
         psnr_epoch = 0
         model.eval()
         t1 = time.time()
-        for lr, hr in test_dataloader:
+        for lr, hr, _, _ in test_dataloader:
             b = lr.shape[0]
             lr = lr.to(device=cfg.DEVICE)
             hr = hr.to(device=cfg.DEVICE)
@@ -242,9 +232,49 @@ def test_loop(cfg, epochs, test_dataset, model):
     print("The average psnr is: {}".format(psnr_total))
 
 
-def convert_weight(cfg):
-    model = SRModel(cfg.MODEL.CIN,
-                    cfg.MODEL.CMID,
-                    cfg.MODEL.CUP,
-                    cfg.MODEL.COUT,
-                    cfg.MODEL.N_BLOCK).to(device=cfg.DEVICE)
+def visualization(cfg, dataset, photo_num):
+    assert photo_num % 2 == 0
+    # Load training/validation dataset
+    dataset = BenchmarkDataset(cfg, name=dataset, length=photo_num)
+    dataloader = DataLoader(dataset, batch_size=photo_num, drop_last=False)
+    model_name = "model_lr_{}_mid_{}_up_{}_seed_{}.pth".format(cfg.TRAIN.LR,
+                                                               cfg.MODEL.CMID,
+                                                               cfg.MODEL.CUP,
+                                                               cfg.RAND_SEED)
+    model = torch.load(cfg.SAVE_DIR + model_name)
+
+    for lr, hr, path_pair, crop_pos in dataloader:
+        lr = lr.to(device=cfg.DEVICE)
+        hr = hr.to(device=cfg.DEVICE)
+        pred_sr = model(lr)
+
+        lr = lr.detach().to("cpu").numpy()
+        pred_sr = pred_sr.detach().to("cpu").numpy()
+        hr = hr.detach().to("cpu").numpy()
+
+        lr = lr[:, (2, 1, 0), :, :].transpose((0, 2, 3, 1))
+        pred_sr = pred_sr[:, (2, 1, 0), :, :].transpose((0, 2, 3, 1))
+        hr = hr[:, (2, 1, 0), :, :].transpose((0, 2, 3, 1))
+        images = []
+        for i in range(photo_num):
+            l = lr[i]
+            h = hr[i]
+            s = pred_sr[i]
+
+            image = np.hstack([cv2.resize(l, (256, 256)), np.ones((256, 8, 3)),
+                               cv2.resize(s, (256, 256)), np.ones((256, 8, 3)),
+                               cv2.resize(h, (256, 256))])
+            images.append(image)
+
+        images_rows = []
+        for i in range(int(photo_num / 2)):
+            images_row = np.hstack([images[2 * i], np.ones((256, 16, 3)), images[2 * i + 1]])
+            images_rows.append(images_row)
+
+        for i in range(int(photo_num/2)):
+            if i != int(photo_num/2) - 1:
+                images_rows.insert(2 * i-1, np.ones((16, 1584, 3)))
+        full_img = np.vstack(images_rows)
+        cv2.imshow("Demo1", full_img)
+        key = cv2.waitKey(0)
+        cv2.imwrite("./visual.png", full_img * 255)

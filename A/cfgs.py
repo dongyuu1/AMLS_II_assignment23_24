@@ -4,7 +4,7 @@
 from fvcore.common.config import CfgNode
 
 # -----------------------------------------------------------------------------
-# Config definition
+# General configs
 # -----------------------------------------------------------------------------
 _C = CfgNode()
 
@@ -61,7 +61,7 @@ _C.MODEL = CfgNode()
 
 _C.MODEL.CIN = 3
 
-_C.MODEL.CMID = 48
+_C.MODEL.CMID = 32
 
 _C.MODEL.CUP = 24
 

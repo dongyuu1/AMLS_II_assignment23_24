@@ -147,7 +147,7 @@ def param_count(model):
     num = 0
     for n, v in model.named_parameters():
         num += v.nelement()
-    print(num)
+    return num
 
 
 if __name__ == "__main__":
