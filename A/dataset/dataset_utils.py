@@ -3,6 +3,14 @@ import numpy as np
 
 
 def simul_transform(lr_img, hr_img, flip=True, rotation=False):
+    """
+    The data augmentation function simultaneously applied to an LR, HR image pair
+    :param lr_img: The LR image
+    :param hr_img: The HR image
+    :param flip: If randomly flip the data
+    :param rotation: If randomly rotate the data
+    :return: The augmented LR, HR image pair
+    """
     if flip:
         flip_prob = random.uniform(0, 1)
         if flip_prob >= 0.5:
@@ -16,9 +24,4 @@ def simul_transform(lr_img, hr_img, flip=True, rotation=False):
 
         hr_img = np.rot90(hr_img, rot_times, (1, 2))
 
-
     return np.ascontiguousarray(lr_img), np.ascontiguousarray(hr_img)
-
-
-
-

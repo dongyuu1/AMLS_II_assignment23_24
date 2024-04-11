@@ -7,35 +7,68 @@ from tqdm import tqdm
 from .dataset_utils import simul_transform
 
 
-
 class DIV2K(Dataset):
+    """
+    The class of the training dataset
+    """
     def __init__(self, cfg, mode):
+        """
+        The initialization method
+        :param cfg: The configuration object
+        :param mode: The mode selected
+        """
         super(DIV2K, self).__init__()
         self.cfg = cfg
         self.mode = mode
 
         # Locate the path of the dataset and list images
-        
+
         if self.mode == "train":
-            lr_names = os.listdir(cfg.LR_TRAIN_PATH)
+            # lr_names = os.listdir(cfg.LR_TRAIN_PATH)
             hr_names = os.listdir(cfg.HR_TRAIN_PATH)
-            lr_paths = [os.path.join(cfg.LR_TRAIN_PATH, hr_name[:-4]+"x4.png") for hr_name in hr_names]
-            hr_paths = [os.path.join(cfg.HR_TRAIN_PATH, hr_name) for hr_name in hr_names]
-    
+            lr_paths = [
+                os.path.join(cfg.LR_TRAIN_PATH, hr_name[:-4] + "x4.png")
+                for hr_name in hr_names
+            ]
+            hr_paths = [
+                os.path.join(cfg.HR_TRAIN_PATH, hr_name) for hr_name in hr_names
+            ]
+
         else:
             lr_names = os.listdir(cfg.LR_VAL_PATH)
             hr_names = os.listdir(cfg.HR_VAL_PATH)
-            lr_paths = [os.path.join(cfg.LR_VAL_PATH, hr_name[:-4]+"x4.png") for hr_name in hr_names]
+            lr_paths = [
+                os.path.join(cfg.LR_VAL_PATH, hr_name[:-4] + "x4.png")
+                for hr_name in hr_names
+            ]
             hr_paths = [os.path.join(cfg.HR_VAL_PATH, hr_name) for hr_name in hr_names]
 
-
         # Load, preprocess, and store images into memery to save I/O time
-        print("Loading lr images for " + "training" if self.mode == "train" else "validation")
-        self.lr_list = [self._load_and_preprocess_img(lr_paths[index]) for index in tqdm(range(len(lr_paths)))]
-        print("Loading hr images for " + "training" if self.mode == "train" else "validation")
-        self.hr_list = [self._load_and_preprocess_img(hr_paths[index]) for index in tqdm(range(len(hr_paths)))]
+        print(
+            "Loading lr images for " + "training"
+            if self.mode == "train"
+            else "validation"
+        )
+        self.lr_list = [
+            self._load_and_preprocess_img(lr_paths[index])
+            for index in tqdm(range(len(lr_paths)))
+        ]
+        print(
+            "Loading hr images for " + "training"
+            if self.mode == "train"
+            else "validation"
+        )
+        self.hr_list = [
+            self._load_and_preprocess_img(hr_paths[index])
+            for index in tqdm(range(len(hr_paths)))
+        ]
 
     def _load_and_preprocess_img(self, img_path):
+        """
+        The method reading and converting the format of an image
+        :param img_path: The path of an image
+        :return: The image with the shape of [n, (RGB), h, w]
+        """
         img = cv2.imread(img_path)
         # BGR->RGB HWC->CHW
         img = img[:, :, (2, 1, 0)].transpose((2, 0, 1))
@@ -43,6 +76,11 @@ class DIV2K(Dataset):
         return img
 
     def __getitem__(self, ind):
+        """
+        The method for retrieving the data
+        :param ind: The index of the data
+        :return: The (LR, HR) data pair
+        """
         lr_img = self.lr_list[ind]
         hr_img = self.hr_list[ind]
 
@@ -57,12 +95,17 @@ class DIV2K(Dataset):
         w_start = random.randint(0, wl - crop_size)
 
         # Crop lr and hr image patches
-        lr_crop = lr_img[:, h_start:h_start + crop_size, w_start:w_start + crop_size].copy()
-        hr_crop = hr_img[:, h_start * self.cfg.SCALE: (h_start + crop_size) * self.cfg.SCALE,
-                  w_start * self.cfg.SCALE: (w_start + crop_size) * self.cfg.SCALE].copy()
+        lr_crop = lr_img[
+            :, h_start : h_start + crop_size, w_start : w_start + crop_size
+        ].copy()
+        hr_crop = hr_img[
+            :,
+            h_start * self.cfg.SCALE : (h_start + crop_size) * self.cfg.SCALE,
+            w_start * self.cfg.SCALE : (w_start + crop_size) * self.cfg.SCALE,
+        ].copy()
 
         # Perform data augmentation
-        lr_crop, hr_crop = simul_tnsform(lr_crop, hr_crop, flip=True, rotation=True)
+        lr_crop, hr_crop = simul_transform(lr_crop, hr_crop, flip=True, rotation=True)
 
         # Normalize the data and convert them into tensors
         lr_t = torch.from_numpy(lr_crop).to(dtype=torch.float32) / 255
@@ -70,14 +113,21 @@ class DIV2K(Dataset):
         return lr_t, hr_t
 
     def __len__(self):
+        """
+        :return: The length of the dataset
+        """
         return len(self.lr_list)
 
 
 class BenchmarkDataset(Dataset):
+    """
+   The class of the evaluation dataset
+   """
     def __init__(self, cfg, name, length):
         """
-        :param cfg: Configuration object
-        :param name: Name of the dataset
+        The initialization method
+        :param cfg: The configuration object
+        :param name: The name of the selected dataset (Set5, Set14, B100, Urban100, DIV2K)
         """
         super(BenchmarkDataset, self).__init__()
         self.cfg = cfg
@@ -91,19 +141,33 @@ class BenchmarkDataset(Dataset):
         else:
             hr_test_path = cfg.HR_VAL_PATH
             lr_test_path = cfg.LR_VAL_PATH
-        
-        lr_names = os.listdir(lr_test_path)
+
+        # lr_names = os.listdir(lr_test_path)
         hr_names = os.listdir(hr_test_path)
-        
-        lr_paths = [os.path.join(lr_test_path, hr_name[:-4]+"x4.png") for hr_name in hr_names]
-        hr_paths = [os.path.join(hr_test_path, hr_name) for hr_name in hr_names]
+
+        self.lr_paths = [
+            os.path.join(lr_test_path, hr_name[:-4] + "x4.png") for hr_name in hr_names
+        ]
+        self.hr_paths = [os.path.join(hr_test_path, hr_name) for hr_name in hr_names]
         # Load, preprocess, and store images into memery to save I/O time
         print("Loading lr images for testing")
-        self.lr_list = [self._load_and_preprocess_img(lr_paths[index], hr=False) for index in tqdm(range(len(lr_paths)))]
+        self.lr_list = [
+            self._load_and_preprocess_img(self.lr_paths[index], hr=False)
+            for index in tqdm(range(len(self.lr_paths)))
+        ]
         print("Loading hr images for testing")
-        self.hr_list = [self._load_and_preprocess_img(hr_paths[index], hr=True) for index in tqdm(range(len(hr_paths)))]
+        self.hr_list = [
+            self._load_and_preprocess_img(self.hr_paths[index], hr=True)
+            for index in tqdm(range(len(self.hr_paths)))
+        ]
 
     def _load_and_preprocess_img(self, img_path, hr=True):
+        """
+        The method reading and converting the format of an image
+        :param img_path: The path of an image
+        :param hr: If the image is an HR one or not
+        :return: The image with the shape of [n, (RGB), h, w]
+        """
         img = cv2.imread(img_path)
         crop_size = self.cfg.PATCH_SIZE if hr else self.cfg.PATCH_SIZE // self.cfg.SCALE
         h, w, _ = img.shape
@@ -124,13 +188,18 @@ class BenchmarkDataset(Dataset):
         return img
 
     def __getitem__(self, ind):
+        """
+        The method for retrieving the data
+        :param ind: The index of the data
+        :return: The (LR, HR) data pair
+        """
         # The length of the dataset may exceed its actual volume,
         # use a remainder to determine which image to retrieve
         img_ind = ind % (len(self.lr_list))
 
         lr_img = self.lr_list[img_ind]
         hr_img = self.hr_list[img_ind]
-
+        path_pair = (self.lr_paths, self.hr_paths)
         # Get height and width of the lr image
         _, hl, wl = lr_img.shape
 
@@ -142,14 +211,22 @@ class BenchmarkDataset(Dataset):
         w_start = random.randint(0, wl - crop_size)
 
         # Crop lr and hr image patches
-        lr_crop = lr_img[:, h_start:h_start + crop_size, w_start:w_start + crop_size].copy()
-        hr_crop = hr_img[:, h_start * self.cfg.SCALE: (h_start + crop_size) * self.cfg.SCALE,
-                  w_start * self.cfg.SCALE: (w_start + crop_size) * self.cfg.SCALE].copy()
-
+        lr_crop = lr_img[
+            :, h_start : h_start + crop_size, w_start : w_start + crop_size
+        ].copy()
+        hr_crop = hr_img[
+            :,
+            h_start * self.cfg.SCALE : (h_start + crop_size) * self.cfg.SCALE,
+            w_start * self.cfg.SCALE : (w_start + crop_size) * self.cfg.SCALE,
+        ].copy()
+        crop_pos = (h_start, w_start)
         # Normalize the data and convert them into tensors
         lr_t = torch.from_numpy(lr_crop).to(dtype=torch.float32) / 255
         hr_t = torch.from_numpy(hr_crop).to(dtype=torch.float32) / 255
-        return lr_t, hr_t
+        return lr_t, hr_t, path_pair, crop_pos
 
     def __len__(self):
+        """
+        :return: The length of the dataset
+        """
         return self.length
