@@ -8,15 +8,15 @@ from fvcore.common.config import CfgNode
 # -----------------------------------------------------------------------------
 _C = CfgNode()
 
-_C.LR_TRAIN_PATH = "./data/DIV2K_train_LR_bicubic/X4"
+_C.LR_TRAIN_PATH = "./Datasets/DIV2K_train_LR_bicubic/X4"
 
-_C.LR_VAL_PATH = "./data/DIV2K_valid_LR_bicubic/X4"
+_C.LR_VAL_PATH = "./Datasets/DIV2K_valid_LR_bicubic/X4"
 
-_C.HR_TRAIN_PATH = "./data/DIV2K_train_HR"
+_C.HR_TRAIN_PATH = "./Datasets/DIV2K_train_HR"
 
-_C.HR_VAL_PATH = "./data/DIV2K_valid_HR"
+_C.HR_VAL_PATH = "./Datasets/DIV2K_valid_HR"
 
-_C.TEST_PATH = "./data/benchmark"
+_C.TEST_PATH = "./Datasets/benchmark"
 
 _C.SAVE_DIR = "./"
 
