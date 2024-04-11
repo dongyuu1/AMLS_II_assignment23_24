@@ -1,6 +1,6 @@
 # APPLIED MACHINE LEARNING SYSTEM II ELEC0135 
 
-The code is the assignment of Applied Machine Learning System II and is implemented by Dongyu Wang (23104424). 
+The code is for the assignment of Applied Machine Learning System II and is implemented by Dongyu Wang (SN:23104424). 
 
 The code is an implementation the of Single Image Super-Resolution. A new model architecture is introduced to effectively 
 extract long-range and short-range information within features via combining two kinds of attention-based modules. 
