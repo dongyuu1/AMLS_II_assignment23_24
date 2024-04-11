@@ -20,14 +20,12 @@ cfgs.py stores all the hyperparameters and config information.
 stores the code of the model architecture. ./models/metrics.py includes the losses functions and metrics.
 ## Initialization
 
-Please install the packages required using:
+Please run anaconda and create the environment with the following command:
 ```
-pip install -r requirements.txt
+cd path/to/AMLS2/
+conda env create -f environment.yaml
 ```
-To install the pytorch, please run the following command line:
-```
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-```
+
 ## Dataset
 Please download the DIV2K dataset via the following link: https://data.vision.ee.ethz.ch/cvl/DIV2K/. 
 This project uses the x4 bicubic downscaling LR images (Track1) for super-resolution. The downloaded data should 
