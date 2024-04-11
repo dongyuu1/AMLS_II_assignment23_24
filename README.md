@@ -17,7 +17,7 @@ log information during training. ./A contains the code dealing with the Single I
 In the folder A, launch.py contains all the code for launching the model training, evaluation and visualization. 
 cfgs.py stores all the hyperparameters and config information.
 ./dataset includes the code related to retrieving and preprocessing the data for training/testing. ./models/model_arch.py
-stores the code of the model architecture. ./models/metrics.py includes the losses functions and metrics.
+stores the code of the model architecture. ./models/metrics.py includes the loss functions and metrics.
 ## Initialization
 
 Please run anaconda and create the environment with the following command:
