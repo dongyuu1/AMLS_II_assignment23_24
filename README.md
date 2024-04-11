@@ -22,8 +22,9 @@ stores the code of the model architecture. ./models/metrics.py includes the loss
 
 Please run anaconda and create the environment with the following command:
 ```
-cd path/to/AMLS2/
+cd path/to/AMLS_II_assignment23_24
 conda env create -f environment.yaml
+conda activate AMLS2
 ```
 
 ## Dataset
