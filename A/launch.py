@@ -5,7 +5,7 @@ import time
 import cv2
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from .Datasets.datasets import DIV2K, BenchmarkDataset
+from .dataset.datasets import DIV2K, BenchmarkDataset
 from .models.model_arch import SRModel, param_count
 from .models.metrics import *
 
