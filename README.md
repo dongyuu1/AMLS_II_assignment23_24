@@ -48,8 +48,9 @@ Datasets ---- DIV2K_train_HR
 ## Launch
 Here we can start training of the model:
 ```
- python main.py 
+python main.py
 ```
+
 To adjust hyperparameters, please use the following command:
 ```
 python main.py --mode train --cmid 32 --cup 24 --lr 2e-3
@@ -58,6 +59,11 @@ python main.py --mode train --cmid 32 --cup 24 --lr 2e-3
 To test the model, run the following command:
 ```
 python main.py --mode test --cmid 32 --cup 24 --lr 2e-3 ----test_data B100 (or Urban100, Set5, Set14, DIV2K)
+```
+
+To see the log data during training, run the following command:
+```
+tensorboard --logdir /runs
 ```
 
 To visualize the model performance, run the following command:
